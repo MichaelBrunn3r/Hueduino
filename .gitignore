@@ -1,0 +1,14 @@
+.pio
+.pioenvs
+.piolibdeps
+\.vscode/
+platformio.ini
+
+src/main.cpp
+build
+lib/ArduinoJStream
+lib/MockArduinoNative
+test/MockArduino
+
+Hueduino
+Hueduino.zip
