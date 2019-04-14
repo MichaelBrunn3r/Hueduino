@@ -7,11 +7,23 @@ namespace Hueduino {
         base_url += (String)ip + "/api/" + apiKey;
     }
 
-    GroupStream Bridge::getGroups(HTTPClient& http, WiFiClient& client) {
-        return GroupStream(http, client, base_url.c_str());
+    bool Bridge::requestGroups(HTTPClient& http, WiFiClient& client) {
+        if(!http.begin(client, base_url + "/groups")) return false;
+        int httpCode = http.GET();
+        return httpCode == HTTP_CODE_OK;
     }
 
-    SceneStream Bridge::getScenes(HTTPClient& http, WiFiClient& client) {
-        return SceneStream(http, client, base_url.c_str());
+    bool Bridge::requestScenes(HTTPClient& http, WiFiClient& client) {
+        if(!http.begin(client, base_url + "/scenes")) return false;
+        int httpCode = http.GET();
+        return httpCode == HTTP_CODE_OK;
+    }
+
+    GroupStream Bridge::parseGroupStream(WiFiClient& client) {
+        return GroupStream(client);
+    }
+
+    SceneStream Bridge::parseSceneStream(WiFiClient& client) {
+        return SceneStream(client);
     }
 } // Hueduino

@@ -4,30 +4,13 @@
 #define inBounds(x, lower, upper) (x >= lower && x <= upper)
 
 namespace Hueduino {
-    GroupStream::GroupStream(HTTPClient& http, WiFiClient& client, const char* base_url) : mHTTP(http) {
-        String url = base_url;
-        url += "/groups";
-        mHTTP.begin(client, url);
-        mHTTP.GET();
-
-        mStream = new Internals::TimedStreamWrapper(client);
-        mParser = JStream::JsonParser(*mStream);
-
-        // Enter root json object
-        if(!mParser.enterObj()) reachedEOF = true;
-    }
-
-    GroupStream::~GroupStream() {
-        if(mStream) delete mStream;
+    GroupStream::GroupStream(WiFiClient& client) : mStream(Internals::WiFiClientWrapper(client)) {
+        mParser = JStream::JsonParser(mStream);
+        if(!mParser.enterObj()) mEnded = true;
     }
 
     Group* GroupStream::next() {
-        if(reachedEOF) return nullptr; // Already determined that no more groups exist in prededing call
-
-        if(!mHTTP.connected()) {
-            reachedEOF = true;
-            return nullptr;
-        }
+        if(mEnded) return nullptr;
 
         String idBuf = "";
         while(mParser.nextKey(&idBuf)) { // Test if another key and hence another group exists
@@ -93,7 +76,7 @@ namespace Hueduino {
         }
 
         // No more groups exist
-        reachedEOF = true;
+        mEnded = true;
         return nullptr;
     }
 

@@ -93,7 +93,8 @@ TEST_CASE("::next") {
             HTTPClient http;
             Bridge bridge = Bridge(ip.c_str(), apiKey.c_str());
             http.addGETResponse(bridge.base_url + "/scenes", json);
-            SceneStream stream = bridge.getScenes(http, client);
+            bridge.requestScenes(http, client);
+            SceneStream stream = bridge.parseSceneStream(client);
 
             std::unique_ptr<Scene> scene = std::unique_ptr<Scene>(stream.next());
             REQUIRE(scene != nullptr);
@@ -140,7 +141,8 @@ TEST_CASE("::next") {
             HTTPClient http;
             Bridge bridge = Bridge(ip.c_str(), apiKey.c_str());
             http.addGETResponse(bridge.base_url + "/scenes", json);
-            SceneStream stream = bridge.getScenes(http, client);
+            bridge.requestScenes(http, client);
+            SceneStream stream = bridge.parseSceneStream(client);
 
             std::unique_ptr<Scene> scene = std::unique_ptr<Scene>(stream.next());
             REQUIRE(scene.get() == nullptr);
@@ -185,7 +187,8 @@ TEST_CASE("::collect") {
         HTTPClient http;
         Bridge bridge = Bridge(ip.c_str(), apiKey.c_str());
         http.addGETResponse(bridge.base_url + "/scenes", json);
-        SceneStream stream = bridge.getScenes(http, client);
+        bridge.requestScenes(http, client);
+        SceneStream stream = bridge.parseSceneStream(client);
 
         std::vector<std::unique_ptr<Scene>> scenes = stream.collect();
 
@@ -197,7 +200,7 @@ TEST_CASE("::collect") {
 
         // Check if stream ended
         REQUIRE(stream.next() == nullptr);
-        REQUIRE(stream.mReachedEOF == true);
+        REQUIRE(stream.mEnded == true);
 
         CHECK_THAT(client.readString().c_str(), Catch::Matchers::Equals(json_after_exec));
         http.end();
@@ -250,7 +253,8 @@ TEST_CASE("Filter names") {
         HTTPClient http;
         Bridge bridge = Bridge(ip.c_str(), apiKey.c_str());
         http.addGETResponse(bridge.base_url + "/scenes", json);
-        auto scenes = bridge.getScenes(http, client).filterNames(searchedNames).collect();
+        bridge.requestScenes(http, client);
+        auto scenes = bridge.parseSceneStream(client).filterNames(searchedNames).collect();
 
         REQUIRE(scenes.size() == expectedScene.size());
         for(int i=0; i<scenes.size(); i++) {
@@ -297,7 +301,8 @@ TEST_CASE("Filter type") {
         HTTPClient http;
         Bridge bridge = Bridge(ip.c_str(), apiKey.c_str());
         http.addGETResponse(bridge.base_url + "/scenes", json);
-        auto scenes = bridge.getScenes(http, client).filterType(searchedType).collect();
+        bridge.requestScenes(http, client);
+        auto scenes = bridge.parseSceneStream(client).filterType(searchedType).collect();
 
         REQUIRE(scenes.size() == expectedScene.size());
         for(int i=0; i<scenes.size(); i++) {
@@ -363,7 +368,8 @@ TEST_CASE("Filter group IDs") {
         HTTPClient http;
         Bridge bridge = Bridge(ip.c_str(), apiKey.c_str());
         http.addGETResponse(bridge.base_url + "/scenes", json);
-        auto scenes = bridge.getScenes(http, client).filterGroups(searchedGroupIDs).collect();
+        bridge.requestScenes(http, client);
+        auto scenes = bridge.parseSceneStream(client).filterGroups(searchedGroupIDs).collect();
 
         REQUIRE(scenes.size() == expectedScene.size());
         for(int i=0; i<scenes.size(); i++) {
@@ -422,7 +428,8 @@ TEST_CASE("Filter IDs") {
         HTTPClient http;
         Bridge bridge = Bridge(ip.c_str(), apiKey.c_str());
         http.addGETResponse(bridge.base_url + "/scenes", json);
-        auto scenes = bridge.getScenes(http,client).filterIDs(searchedIDs).collect();
+        bridge.requestScenes(http, client);
+        auto scenes = bridge.parseSceneStream(client).filterIDs(searchedIDs).collect();
 
         REQUIRE(scenes.size() == expectedScene.size());
         for(int i=0; i<scenes.size(); i++) {
@@ -447,7 +454,8 @@ TEST_CASE("::next speed test", "[!hide][time_next][!benchmark]") {
     HTTPClient http;
     Bridge bridge = Bridge(ip.c_str(), apiKey.c_str());
     http.addGETResponse(bridge.base_url + "/scenes", json);
-    auto stream = bridge.getScenes(http,client);
+    bridge.requestScenes(http, client);
+    auto stream = bridge.parseSceneStream(client);
 
     BENCHMARK("iter over scenes") {
         while(stream.next() != nullptr) continue;
@@ -468,7 +476,7 @@ TEST_CASE("::collect speed test", "[!hide][time_collect][!benchmark]") {
     HTTPClient http;
     Bridge bridge = Bridge(ip.c_str(), apiKey.c_str());
     http.addGETResponse(bridge.base_url + "/scenes", json);
-    auto stream = bridge.getScenes(http,client);
+    auto stream = bridge.parseSceneStream(client);
 
     BENCHMARK("collect scenes") {
         stream.collect();

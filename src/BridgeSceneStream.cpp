@@ -2,30 +2,13 @@
 #include <Internals/JsonUtils.h>
 
 namespace Hueduino {
-    SceneStream::SceneStream(HTTPClient& http, WiFiClient& client, const char* base_url) : mHTTP(http) {
-        String url = base_url;
-        url += "/scenes";
-        mHTTP.begin(client, url);
-        mHTTP.GET();
-
-        mStream = new Internals::TimedStreamWrapper(client);
-        mParser = JStream::JsonParser(*mStream);
-
-        // Enter root json object
-        if(!mParser.enterObj()) mReachedEOF = true;
-    }
-
-    SceneStream::~SceneStream() {
-        if(mStream) delete mStream;
+    SceneStream::SceneStream(WiFiClient& client) : mStream(Internals::WiFiClientWrapper(client)) {
+        mParser = JStream::JsonParser(mStream);
+        if(!mParser.enterObj()) mEnded = true;
     }
 
     Scene* SceneStream::next() {
-        if(mReachedEOF) return nullptr; // Already determined that no more groups exist in prededing call
-
-        if(!mHTTP.connected()) {
-            mReachedEOF = true;
-            return nullptr;
-        }
+        if(mEnded) return nullptr;
 
         String id = "";
         while(mParser.nextKey(&id)) { // Test if another key and hence another scene exists
@@ -92,8 +75,8 @@ namespace Hueduino {
             continue;
         }
 
-        // No more groups exist
-        mReachedEOF = true;
+        // No more scenes exist
+        mEnded = true;
         return nullptr;
     }
 

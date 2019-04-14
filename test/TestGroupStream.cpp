@@ -29,11 +29,12 @@ TEST_CASE("::end") {
     HTTPClient http;
     Bridge bridge = Bridge(ip.c_str(), apiKey.c_str());
     http.addGETResponse(bridge.base_url + "/groups", json);
-    GroupStream stream = bridge.getGroups(http, client);
+    bridge.requestGroups(http, client);
+    GroupStream stream = bridge.parseGroupStream(client);
     http.end();
 
     REQUIRE(stream.next() == nullptr);
-    REQUIRE(stream.reachedEOF == true);
+    REQUIRE(stream.mEnded == true);
 }
 
 TEST_CASE("::next", "[next]") {
@@ -76,7 +77,8 @@ TEST_CASE("::next", "[next]") {
             HTTPClient http;
             Bridge bridge = Bridge(ip.c_str(), apiKey.c_str());
             http.addGETResponse(bridge.base_url + "/groups", json);
-            GroupStream stream = bridge.getGroups(http, client);
+            bridge.requestGroups(http, client);
+            GroupStream stream = bridge.parseGroupStream(client);
 
             // Compare ::next
             std::unique_ptr<Group> group = std::unique_ptr<Group>(stream.next()); 
@@ -146,7 +148,8 @@ TEST_CASE("::next", "[next]") {
             HTTPClient http;
             Bridge bridge = Bridge(ip.c_str(), apiKey.c_str());
             http.addGETResponse(bridge.base_url + "/groups", json);
-            GroupStream stream = bridge.getGroups(http, client);
+            bridge.requestGroups(http, client);
+            GroupStream stream = bridge.parseGroupStream(client);
 
             if(expectedGroup == nullptr) {
                 REQUIRE(stream.next() == nullptr);
@@ -197,7 +200,8 @@ TEST_CASE("::collect") {
         HTTPClient http;
         Bridge bridge = Bridge(ip.c_str(), apiKey.c_str());
         http.addGETResponse(bridge.base_url + "/groups", json);
-        GroupStream stream = bridge.getGroups(http, client);
+        bridge.requestGroups(http, client);
+        GroupStream stream = bridge.parseGroupStream(client);
 
         std::vector<std::unique_ptr<Group>> groups = stream.collect();
 
@@ -209,7 +213,7 @@ TEST_CASE("::collect") {
 
         // Check if stream ended
         REQUIRE(stream.next() == nullptr);
-        REQUIRE(stream.reachedEOF == true);
+        REQUIRE(stream.mEnded == true);
 
         CHECK_THAT(client.readString().c_str(), Catch::Matchers::Equals(json_after_exec));
         http.end();
@@ -260,7 +264,8 @@ TEST_CASE("::filterIDs") {
         HTTPClient http;
         Bridge bridge = Bridge(ip.c_str(), apiKey.c_str());
         http.addGETResponse(bridge.base_url + "/groups", json);
-        GroupStream stream = bridge.getGroups(http, client);
+        bridge.requestGroups(http, client);
+        GroupStream stream = bridge.parseGroupStream(client);
 
         std::vector<std::unique_ptr<Group>> groups = stream.filterIDs(min_id,max_id).collect();
 
@@ -319,7 +324,8 @@ TEST_CASE("::filterNames") {
         HTTPClient http;
         Bridge bridge = Bridge(ip.c_str(), apiKey.c_str());
         http.addGETResponse(bridge.base_url + "/groups", json);
-        GroupStream stream = bridge.getGroups(http, client);
+        bridge.requestGroups(http, client);
+        GroupStream stream = bridge.parseGroupStream(client);
 
         std::vector<std::unique_ptr<Group>> groups = stream.filterNames(searchedNames).collect();
 
@@ -379,7 +385,8 @@ TEST_CASE("::filterTypes") {
         HTTPClient http;
         Bridge bridge = Bridge(ip.c_str(), apiKey.c_str());
         http.addGETResponse(bridge.base_url + "/groups", json);
-        GroupStream stream = bridge.getGroups(http, client);
+        bridge.requestGroups(http, client);
+        GroupStream stream = bridge.parseGroupStream(client);
 
         std::vector<std::unique_ptr<Group>> groups = stream.filterTypes(searchedTypes).collect();
 
@@ -406,7 +413,7 @@ TEST_CASE("::collect speed test", "[!hide][time_collect][!benchmark]") {
     HTTPClient http;
     Bridge bridge = Bridge(ip.c_str(), apiKey.c_str());
     http.addGETResponse(bridge.base_url + "/groups", json);
-    auto stream = bridge.getGroups(http,client);
+    auto stream = bridge.parseGroupStream(client);
 
     BENCHMARK("collect scenes") {
         stream.collect();

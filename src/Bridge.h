@@ -10,7 +10,7 @@
 #include <Group.h>
 #include <Scene.h>
 #include <JsonParser.h>
-#include <Internals/TimedStreamWrapper.h>
+#include <Internals/WiFiClientWrapper.h>
 
 namespace Hueduino {
     class GroupStream;
@@ -38,14 +38,16 @@ namespace Hueduino {
 
             Bridge(const char* ip, const char* apiKey, bool https=false);
 
-            GroupStream getGroups(HTTPClient& http, WiFiClient& client);
-            SceneStream getScenes(HTTPClient& http, WiFiClient& client);
+            bool requestGroups(HTTPClient& http, WiFiClient& client);
+            bool requestScenes(HTTPClient& http, WiFiClient& client);
+
+            GroupStream parseGroupStream(WiFiClient& client);
+            SceneStream parseSceneStream(WiFiClient& client);
     };
 
     class GroupStream {
         public:
-            GroupStream(HTTPClient& http, WiFiClient& client, const char* base_url);
-            ~GroupStream();
+            GroupStream(WiFiClient& client);
             
             Group* next();
 
@@ -54,11 +56,10 @@ namespace Hueduino {
             GroupStream& filterTypes(std::set<Group::Type> types);
             std::vector<std::unique_ptr<Group>> collect();
 
-        private:
-            HTTPClient& mHTTP;
+        protected:
+            bool mEnded = false;
+            Internals::WiFiClientWrapper mStream;
             JStream::JsonParser mParser;
-            Internals::TimedStreamWrapper* mStream = nullptr;
-            bool reachedEOF = false; // No more groups possible
 
             Group::id_type min_id = 0;
             Group::id_type max_id = UINT_MAX;
@@ -72,8 +73,7 @@ namespace Hueduino {
 
     class SceneStream {
         public:
-            SceneStream(HTTPClient& http, WiFiClient& client, const char* base_url);
-            ~SceneStream();
+            SceneStream(WiFiClient& client);
 
             Scene* next();
 
@@ -82,11 +82,10 @@ namespace Hueduino {
             SceneStream& filterType(Scene::Type type);
             SceneStream& filterGroups(std::vector<Group::id_type> groupIDs);
             std::vector<std::unique_ptr<Scene>> collect();
-        private:
-            HTTPClient& mHTTP;
+        protected:
+            bool mEnded = false;
             JStream::JsonParser mParser;
-            Internals::TimedStreamWrapper* mStream = nullptr;
-            bool mReachedEOF = false; // No more scenes possible
+            Internals::WiFiClientWrapper mStream;
 
             bool mFilterIDs = false;
             std::vector<const char*> mSearchedIDs;
