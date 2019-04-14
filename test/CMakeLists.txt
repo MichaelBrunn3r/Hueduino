@@ -44,7 +44,8 @@ target_link_libraries(TestSceneStream Hueduino Catch2)
 # Targets #
 ###########
 
-add_custom_target(testGroup ./TestGroup -d yes DEPENDS TestGroup)
-add_custom_target(testScene ./TestScene -d yes DEPENDS TestScene)
-add_custom_target(testGroupStream ./TestGroupStream -d yes DEPENDS TestGroupStream)
-add_custom_target(testSceneStream ./TestSceneStream -d yes DEPENDS TestSceneStream)
+add_custom_target(runTestGroup COMMAND ./TestGroup -d yes DEPENDS TestGroup)
+add_custom_target(runTestScene COMMAND ./TestScene -d yes DEPENDS TestScene)
+add_custom_target(runTestGroupStream COMMAND ./TestGroupStream -d yes DEPENDS TestGroupStream)
+add_custom_target(runTestSceneStream COMMAND ./TestSceneStream -d yes DEPENDS TestSceneStream)
+add_custom_target(runTestAll COMMAND make runTestGroup && make runTestScene && make runTestGroupStream && make runTestSceneStream)
